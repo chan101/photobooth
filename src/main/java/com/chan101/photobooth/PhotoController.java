@@ -57,11 +57,11 @@ public class PhotoController {
 	    	JSONObject obj1 = new JSONObject();
 			if(file.isDirectory()) {
 				obj1.put("type", "D");
-				obj1.put("file", file.getPath().replace(imagesPath, "images/"));
+				obj1.put("file", file.getPath().replace(imagesPath, ""));
 			}
 			else {
 				obj1.put("type", "F");
-				obj1.put("file", file.getPath().replace(imagesPath, "images/"));
+				obj1.put("file", file.getPath().replace(imagesPath, ""));
 			}
 			
 			responseList.put(obj1);

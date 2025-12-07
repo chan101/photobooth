@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -81,7 +80,7 @@ public class PhotoController {
         }
 
         try {
-            Path targetPath = Paths.get(imagesPath + subPath, file.getOriginalFilename());
+            Path targetPath = Path.of(imagesPath + subPath, file.getOriginalFilename());
 
             Files.write(targetPath, file.getBytes());
 

@@ -1,6 +1,5 @@
 package com.chan101.photobooth;
 
-import java.awt.image.ImageProducer;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/photos")
+@CrossOrigin(origins = "*")
 public class PhotoController {
 	
     @Value("${app.images.path}")
@@ -71,25 +72,30 @@ public class PhotoController {
 	}
 
 
-    @PutMapping(value = "/{*subPath}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadFile(@PathVariable String subPath, @RequestParam("file") MultipartFile file) {
+@PutMapping(value = "/{*subPath}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+public ResponseEntity<?> uploadFiles(@PathVariable String subPath, @RequestParam("files") List<MultipartFile> files) {
 
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "File is empty."));
-        }
-
-        try {
-            Path targetPath = Path.of(imagesPath + subPath, file.getOriginalFilename());
-
-            Files.write(targetPath, file.getBytes());
-
-            return ResponseEntity.ok().body(Map.of("message", "Upload successful"));
-
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().body(Map.of("message", e.toString()));
-        }
+    if (files.isEmpty()) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("error", "No files uploaded."));
     }
+
+    try {
+        for (MultipartFile file : files) {
+            if (file.isEmpty()) {
+                continue;  // Skip empty files, or you could return an error for each
+            }
+
+            Path targetPath = Path.of(imagesPath + subPath, file.getOriginalFilename());
+            Files.write(targetPath, file.getBytes());
+        }
+
+        return ResponseEntity.ok().body(Map.of("message", "Upload successful"));
+
+    } catch (IOException e) {
+        return ResponseEntity.internalServerError().body(Map.of("message", e.toString()));
+    }
+}
     
     @PostMapping(value = "/{*subPath}")
     public ResponseEntity<?> createDirectory(@PathVariable String subPath){

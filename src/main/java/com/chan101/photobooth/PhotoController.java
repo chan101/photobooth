@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -57,11 +58,11 @@ public class PhotoController {
 			if (file.isDirectory()) {
 				obj1.put("type", "D");
 				String filePath[] = file.getPath().split("/");
-				obj1.put("file", filePath[filePath.length-1]);
+				obj1.put("file", filePath[filePath.length - 1]);
 			} else {
 				obj1.put("type", "F");
 				String filePath[] = file.getPath().split("/");
-				obj1.put("file", filePath[filePath.length-1]);
+				obj1.put("file", filePath[filePath.length - 1]);
 			}
 
 			responseList.put(obj1);
@@ -109,18 +110,34 @@ public class PhotoController {
 	}
 
 	@DeleteMapping("/{*subPath}")
-    public ResponseEntity<?> deletePhoto(@RequestBody String body, @PathVariable String subPath) {
+	public ResponseEntity<?> deletePhoto(@RequestBody String body, @PathVariable String subPath) {
 
-		JSONArray filesToDelete = new JSONArray(body);
-		for(int i=0; i<filesToDelete.length(); i++) {
-			File file = new File(imagesPath+subPath+"/"+filesToDelete.getString(i));
-			if(!file.exists()) {
-    			return ResponseEntity.badRequest().body(Map.of("message","File does not exist"));
-    		}
-			if(!file.delete()) {
-    			return ResponseEntity.badRequest().body(Map.of("message","File "+ subPath +" could not be deleted."));
-    		}
+		try {
+			JSONArray filesToDelete = new JSONArray(body);
+			for (int i = 0; i < filesToDelete.length(); i++) {
+				File file = new File(imagesPath + subPath + "/" + filesToDelete.getString(i));
+				if (!file.exists()) {
+					return ResponseEntity.badRequest().body(Map.of("message", "File does not exist"));
+				}
+				if (!file.delete()) {
+					return ResponseEntity.badRequest()
+							.body(Map.of("message", "File " + subPath + " could not be deleted."));
+				}
+			}
+		} catch (JSONException e) {
+
+			JSONObject folderToDelete = new JSONObject(body);
+			File file = new File(imagesPath + subPath + "/" + folderToDelete.getString("folder"));
+			if (!file.exists()) {
+					return ResponseEntity.badRequest().body(Map.of("message", "File does not exist"));
+				}
+				if (!file.delete()) {
+					return ResponseEntity.badRequest()
+							.body(Map.of("message", "File " + subPath + " could not be deleted."));
+				}
+			return ResponseEntity.ok().body(Map.of("message", "Files deleted successfully"));
 		}
-		return ResponseEntity.ok().body(Map.of("message","Files deleted successfully"));
-    }
+
+		return ResponseEntity.ok().body(Map.of("message", "Files deleted successfully"));
+	}
 }

@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>com.chan101</groupId>
 	<artifactId>photobooth</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0</version>
 	<name>photobooth</name>
 	<description>Share photos locally</description>
 	<url />

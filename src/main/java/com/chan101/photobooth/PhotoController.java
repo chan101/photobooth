@@ -6,6 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -25,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import net.coobird.thumbnailator.Thumbnails;
 
 @RestController
 @RequestMapping("/photos")
@@ -55,7 +60,7 @@ public class PhotoController {
 		JSONArray responseList = new JSONArray();
 		for (File file : filesList) {
 			JSONObject obj1 = new JSONObject();
-			if (file.isDirectory()) {
+			if (file.isDirectory() ) {
 				obj1.put("type", "D");
 				String filePath[] = file.getPath().split("/");
 				obj1.put("file", filePath[filePath.length - 1]);
@@ -64,8 +69,9 @@ public class PhotoController {
 				String filePath[] = file.getPath().split("/");
 				obj1.put("file", filePath[filePath.length - 1]);
 			}
-
-			responseList.put(obj1);
+			if(!file.getName().equals("thumbnail")){
+				responseList.put(obj1);
+			}
 
 		}
 
@@ -89,6 +95,13 @@ public class PhotoController {
 
 				Path targetPath = Path.of(imagesPath + subPath, file.getOriginalFilename());
 				Files.write(targetPath, file.getBytes());
+				ExecutorService executor = Executors.newFixedThreadPool(8);
+				CompletableFuture.runAsync(() -> {try {
+					Thumbnails.of(targetPath.toString()).size(200, 200).outputQuality(1).toFile(imagesPath +"/thumbnail"+subPath+"/"+file.getOriginalFilename());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}}, executor);
+				 
 			}
 
 			return ResponseEntity.ok().body(Map.of("message", "Upload successful"));
@@ -101,7 +114,9 @@ public class PhotoController {
 	@PostMapping(value = "/{*subPath}")
 	public ResponseEntity<?> createDirectory(@PathVariable String subPath) {
 		File newDir = new File(imagesPath, subPath);
+		File newDirThumbnail = new File(imagesPath + "/thumbnail", subPath);
 		if (newDir.mkdir()) {
+			newDirThumbnail.mkdir();
 			return ResponseEntity.ok().body(Map.of("message", "Folder created successfully"));
 		} else {
 			return ResponseEntity.internalServerError().body(Map.of("message", "Folder could not be created"));
@@ -116,10 +131,12 @@ public class PhotoController {
 			JSONArray filesToDelete = new JSONArray(body);
 			for (int i = 0; i < filesToDelete.length(); i++) {
 				File file = new File(imagesPath + subPath + "/" + filesToDelete.getString(i));
+				File thumbnail = new File(imagesPath +"thumbnail/"+ subPath + "/" + filesToDelete.getString(i));
 				if (!file.exists()) {
 					return ResponseEntity.badRequest().body(Map.of("message", "File does not exist"));
 				}
 				if (!file.delete()) {
+					thumbnail.delete();
 					return ResponseEntity.badRequest()
 							.body(Map.of("message", "File " + subPath + " could not be deleted."));
 				}
@@ -128,16 +145,17 @@ public class PhotoController {
 
 			JSONObject folderToDelete = new JSONObject(body);
 			File file = new File(imagesPath + subPath + "/" + folderToDelete.getString("folder"));
+			File thumbnailFolder = new File(imagesPath + "/thumbnail" + subPath + "/" + folderToDelete.getString("folder"));
 			if (!file.exists()) {
 					return ResponseEntity.badRequest().body(Map.of("message", "File does not exist"));
 				}
-				if (!file.delete()) {
-					return ResponseEntity.badRequest()
-							.body(Map.of("message", "File " + subPath + " could not be deleted."));
-				}
+			if (!file.delete()) {
+				return ResponseEntity.badRequest()
+						.body(Map.of("message", "File " + subPath + " could not be deleted."));
+			}
+			thumbnailFolder.delete();
 			return ResponseEntity.ok().body(Map.of("message", "Files deleted successfully"));
 		}
-
 		return ResponseEntity.ok().body(Map.of("message", "Files deleted successfully"));
 	}
 }

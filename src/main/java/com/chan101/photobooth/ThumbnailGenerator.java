@@ -39,6 +39,7 @@ public class ThumbnailGenerator implements CommandLineRunner {
     }
 
     public void generateThumbnail(String path) throws IOException{
+        if(path.equals(imagesPath+"/thumbnail"))return;
         File[] files = new File(path).listFiles();
         for(File file: files){
             if(file.isDirectory()){
